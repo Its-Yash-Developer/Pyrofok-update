@@ -16,6 +16,8 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrofork.  If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Union
+
 from pyrogram import raw
 from ..object import Object
 
@@ -52,11 +54,11 @@ class Invoice(Object):
     def __init__(
         self,
         *,
-        title: str,
-        description :  str,
         currency: str,
         total_amount: int,
-        start_parameter: str,
+        title: str = None,
+        description :  str = None,
+        start_parameter: str = None,
         shipping_address_requested: bool = None,
         test: bool = None,
         receipt_message_id: int = None,
@@ -75,15 +77,25 @@ class Invoice(Object):
 
     @staticmethod
     def _parse(
-        message_invoice: "raw.types.MessageMediaInvoice"
+        invoice: Union["raw.types.MessageMediaInvoice", "raw.types.Invoice"]
     ) -> "Invoice":
+        if isinstance(invoice, raw.types.MessageMediaInvoice):
+            return Invoice(
+                title=invoice.title,
+                description=invoice.description,
+                currency=invoice.currency,
+                total_amount=invoice.total_amount,
+                start_parameter=invoice.start_param,
+                shipping_address_requested=getattr(invoice, 'shipping_address_requested', None),
+                test=getattr(invoice, 'test', None),
+                receipt_message_id=getattr(invoice, 'receipt_msg_id', None)
+            )
+
+        total_amount = sum(p.amount for p in invoice.prices)
+
         return Invoice(
-            title=message_invoice.title,
-            description=message_invoice.description,
-            currency=message_invoice.currency,
-            total_amount=message_invoice.total_amount,
-            start_parameter=message_invoice.start_param,
-            shipping_address_requested=message_invoice.shipping_address_requested,
-            test=message_invoice.test,
-            receipt_message_id=message_invoice.receipt_msg_id
+            currency=invoice.currency,
+            total_amount=total_amount,
+            shipping_address_requested=getattr(invoice, 'shipping_address_requested', None),
+            test=getattr(invoice, 'test', None)
         )
