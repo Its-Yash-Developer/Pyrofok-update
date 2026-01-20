@@ -18,9 +18,11 @@
 #  along with Pyrofork.  If not, see <http://www.gnu.org/licenses/>.
 
 import pyrogram
+from datetime import datetime
 
 from pyrogram import raw
 from pyrogram import types
+from pyrogram import utils
 from ..object import Object
 
 
@@ -48,6 +50,15 @@ class SuccessfulPayment(Object):
 
         payment_info (:obj:`~pyrogram.types.PaymentInfo`, *optional*):
             Payment information provided by the user. Only available to the bot that received the payment.
+
+        subscription_expiration_date (:py:obj:`~datetime.datetime`, *optional*):
+            Expiration date of the subscription, in Unix time; for recurring payments only.
+
+        is_recurring (``bool``, *optional*):
+            True, if the payment is a recurring payment for a subscription.
+
+        is_first_recurring (``bool``, *optional*):
+            True, if the payment is the first payment for a subscription.
     """
 
     def __init__(
@@ -58,7 +69,10 @@ class SuccessfulPayment(Object):
         telegram_payment_charge_id: str,
         provider_payment_charge_id: str,
         shipping_option_id: str = None,
-        payment_info: "types.PaymentInfo" = None
+        payment_info: "types.PaymentInfo" = None,
+        subscription_expiration_date: datetime = None,
+        is_recurring: bool = None,
+        is_first_recurring: bool = None
     ):
         super().__init__()
 
@@ -69,6 +83,9 @@ class SuccessfulPayment(Object):
         self.provider_payment_charge_id = provider_payment_charge_id
         self.shipping_option_id = shipping_option_id
         self.payment_info = payment_info
+        self.subscription_expiration_date = subscription_expiration_date
+        self.is_recurring = is_recurring
+        self.is_first_recurring = is_first_recurring
 
     @staticmethod
     def _parse(client: "pyrogram.Client", successful_payment) -> "SuccessfulPayment":
@@ -110,5 +127,8 @@ class SuccessfulPayment(Object):
             telegram_payment_charge_id=telegram_payment_charge_id,
             provider_payment_charge_id=provider_payment_charge_id,
             shipping_option_id=shipping_option_id,
-            payment_info=payment_info
+            payment_info=payment_info,
+            subscription_expiration_date=utils.timestamp_to_datetime(successful_payment.subscription_until_date),
+            is_recurring=successful_payment.recurring_used,
+            is_first_recurring=successful_payment.recurring_init
         )
