@@ -46,7 +46,8 @@ class CreateInvoiceLink:
         need_shipping_address: bool = None,
         send_phone_number_to_provider: bool = None,
         send_email_to_provider: bool = None,
-        is_flexible: bool = None
+        is_flexible: bool = None,
+        subscription_period: int = None
     ) -> str:
         """Use this method to create a link for an invoice.
 
@@ -112,6 +113,9 @@ class CreateInvoiceLink:
             is_flexible (``bool``, *optional*):
                 Pass True if the final price depends on the shipping method. Ignored for payments in `Telegram Stars <https://t.me/BotNews/90>`_.
 
+            subscription_period (``int``, *optional*):
+                The number of seconds the subscription will be active for before the next payment. The currency must be set to “XTR” (Telegram Stars) if the parameter is used. Currently, it must always be 2592000 (30 days) if specified. Any number of subscriptions can be active for a given bot at the same time, including multiple concurrent subscriptions from the same user. Subscription price must no exceed stars_paid_post_amount_max Telegram Stars.
+
         Returns:
             ``str``: On success, the created invoice link is returned.
 
@@ -144,7 +148,9 @@ class CreateInvoiceLink:
                     shipping_address_requested=need_shipping_address,
                     flexible=is_flexible,
                     phone_to_provider=send_phone_number_to_provider,
-                    email_to_provider=send_email_to_provider
+                    email_to_provider=send_email_to_provider,
+                    recurring=True if subscription_period else None,
+                    subscription_period=subscription_period
                 ),
                 payload=payload.encode() if isinstance(payload, str) else payload,
                 provider=provider_token,
