@@ -71,6 +71,13 @@ class InputMediaVideo(InputMedia):
 
         has_spoiler (``bool``, *optional*):
             Pass True if the photo needs to be covered with a spoiler animation.
+
+        cover (``str`` | ``BinaryIO``, *optional*):
+            Video cover.
+            Pass a file_id as string to attach a photo that exists on the Telegram servers,
+            pass a HTTP URL as a string for Telegram to get a video from the Internet,
+            pass a file path as string to upload a new photo cover that exists on your local machine, or
+            pass a binary file-like object with its attribute ".name" set for in-memory uploads.
     """
 
     def __init__(
@@ -86,6 +93,7 @@ class InputMediaVideo(InputMedia):
         file_name: str = None,
         supports_streaming: bool = True,
         has_spoiler: bool = None,
+        cover: Union[str, BinaryIO] = None,
     ):
         super().__init__(media, caption, parse_mode, caption_entities)
 
@@ -96,3 +104,4 @@ class InputMediaVideo(InputMedia):
         self.file_name = file_name
         self.supports_streaming = supports_streaming
         self.has_spoiler = has_spoiler
+        self.cover = cover
