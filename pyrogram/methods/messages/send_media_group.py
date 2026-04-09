@@ -261,6 +261,47 @@ class SendMediaGroup:
                 or
                 isinstance(i, types.InputMediaAnimation)
             ):
+                vidcover_file = None
+                cover = getattr(i, "cover", None)
+                if cover is not None:
+                    if isinstance(cover, str):
+                        if os.path.isfile(cover):
+                            vidcover_media = await self.invoke(
+                                raw.functions.messages.UploadMedia(
+                                    peer=await self.resolve_peer(chat_id),
+                                    media=raw.types.InputMediaUploadedPhoto(
+                                        file=await self.save_file(cover)
+                                    )
+                                )
+                            )
+                        elif re.match("^https?://", cover):
+                            vidcover_media = await self.invoke(
+                                raw.functions.messages.UploadMedia(
+                                    peer=await self.resolve_peer(chat_id),
+                                    media=raw.types.InputMediaPhotoExternal(
+                                        url=cover
+                                    )
+                                )
+                            )
+                        else:
+                            vidcover_file = utils.get_input_media_from_file_id(cover, FileType.PHOTO).id
+                    else:
+                        vidcover_media = await self.invoke(
+                            raw.functions.messages.UploadMedia(
+                                peer=await self.resolve_peer(chat_id),
+                                media=raw.types.InputMediaUploadedPhoto(
+                                    file=await self.save_file(cover)
+                                )
+                            )
+                        )
+
+                    if 'vidcover_media' in locals() and vidcover_media:
+                        vidcover_file = raw.types.InputPhoto(
+                            id=vidcover_media.photo.id,
+                            access_hash=vidcover_media.photo.access_hash,
+                            file_reference=vidcover_media.photo.file_reference
+                        )
+
                 if isinstance(i.media, str):
                     is_animation = False
                     if os.path.isfile(i.media):
@@ -295,6 +336,7 @@ class SendMediaGroup:
                                     mime_type=self.guess_mime_type(i.media) or "video/mp4",
                                     nosound_video=is_animation,
                                     attributes=attributes,
+                                    video_cover=vidcover_file,
                                 ),
                             ),
                         )
@@ -314,6 +356,7 @@ class SendMediaGroup:
                                 media=raw.types.InputMediaDocumentExternal(
                                     url=i.media,
                                     spoiler=i.has_spoiler,
+                                    video_cover=vidcover_file,
                                 ),
                             ),
                         )
@@ -328,6 +371,7 @@ class SendMediaGroup:
                         )
                     else:
                         media = utils.get_input_media_from_file_id(i.media, FileType.VIDEO)
+                        media.video_cover = vidcover_file
                 else:
                     thumb = await self.save_file(i.thumb)
                     file = await self.save_file(i.media, progress=progress, progress_args=progress_args)
@@ -348,6 +392,7 @@ class SendMediaGroup:
                                     ),
                                     raw.types.DocumentAttributeFilename(file_name=i.file_name or getattr(i.media, "name", "video.mp4")),
                                 ],
+                                video_cover=vidcover_file,
                             ),
                         ),
                     )
