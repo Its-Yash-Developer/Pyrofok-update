@@ -17,11 +17,14 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrofork.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+import re
 from datetime import datetime
-from typing import Union, List, Optional
+from typing import Union, List, Optional, BinaryIO
 
 import pyrogram
 from pyrogram import raw, enums
+from pyrogram.file_id import FileType
 from pyrogram import types
 from pyrogram import utils
 
@@ -47,6 +50,7 @@ class SendCachedMedia:
         protect_content: bool = None,
         allow_paid_broadcast: bool = None,
         invert_media: bool = False,
+        cover: Union[str, BinaryIO] = None,
         reply_markup: Union[
             "types.InlineKeyboardMarkup",
             "types.ReplyKeyboardMarkup",
@@ -130,6 +134,13 @@ class SendCachedMedia:
             invert_media (``bool``, *optional*):
                 Inverts the position of the media and caption.
 
+            cover (``str`` | ``BinaryIO``, *optional*):
+                Video cover.
+                Pass a file_id as string to attach a photo that exists on the Telegram servers,
+                pass a HTTP URL as a string for Telegram to get a video from the Internet,
+                pass a file path as string to upload a new photo cover that exists on your local machine, or
+                pass a binary file-like object with its attribute ".name" set for in-memory uploads.
+
             reply_markup (:obj:`~pyrogram.types.InlineKeyboardMarkup` | :obj:`~pyrogram.types.ReplyKeyboardMarkup` | :obj:`~pyrogram.types.ReplyKeyboardRemove` | :obj:`~pyrogram.types.ForceReply`, *optional*):
                 Additional interface options. An object for an inline keyboard, custom reply keyboard,
                 instructions to remove reply keyboard or to force a reply from the user.
@@ -159,8 +170,48 @@ class SendCachedMedia:
         media = utils.get_input_media_from_file_id(file_id)
         media.spoiler = has_spoiler
 
-        media = utils.get_input_media_from_file_id(file_id)
-        media.spoiler = has_spoiler
+        vidcover_file = None
+        if cover is not None:
+            if isinstance(cover, str):
+                if os.path.isfile(cover):
+                    vidcover_media = await self.invoke(
+                        raw.functions.messages.UploadMedia(
+                            peer=await self.resolve_peer(chat_id),
+                            media=raw.types.InputMediaUploadedPhoto(
+                                file=await self.save_file(cover)
+                            )
+                        )
+                    )
+                elif re.match("^https?://", cover):
+                    vidcover_media = await self.invoke(
+                        raw.functions.messages.UploadMedia(
+                            peer=await self.resolve_peer(chat_id),
+                            media=raw.types.InputMediaPhotoExternal(
+                                url=cover
+                            )
+                        )
+                    )
+                else:
+                    vidcover_file = utils.get_input_media_from_file_id(cover, FileType.PHOTO).id
+            else:
+                vidcover_media = await self.invoke(
+                    raw.functions.messages.UploadMedia(
+                        peer=await self.resolve_peer(chat_id),
+                        media=raw.types.InputMediaUploadedPhoto(
+                            file=await self.save_file(cover)
+                        )
+                    )
+                )
+
+            if 'vidcover_media' in locals() and vidcover_media:
+                vidcover_file = raw.types.InputPhoto(
+                    id=vidcover_media.photo.id,
+                    access_hash=vidcover_media.photo.access_hash,
+                    file_reference=vidcover_media.photo.file_reference
+                )
+
+        if hasattr(media, "video_cover") and vidcover_file is not None:
+            media.video_cover = vidcover_file
 
         r = await self.invoke(
             raw.functions.messages.SendMedia(

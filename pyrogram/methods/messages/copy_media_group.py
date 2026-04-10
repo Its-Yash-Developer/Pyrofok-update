@@ -17,11 +17,14 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrofork.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+import re
 from datetime import datetime
-from typing import Union, List, Optional
+from typing import Union, List, Optional, BinaryIO
 
 import pyrogram
 from pyrogram import types, utils, raw, enums
+from pyrogram.file_id import FileType
 
 
 class CopyMediaGroup:
@@ -47,6 +50,7 @@ class CopyMediaGroup:
         protect_content: bool = None,
         allow_paid_broadcast: bool = None,
         message_effect_id: int = None,
+        covers: Union[List[Union[str, BinaryIO, bool]], Union[str, BinaryIO, bool]] = True,
     ) -> List["types.Message"]:
         """Copy a media group by providing one of the message ids.
 
@@ -129,6 +133,15 @@ class CopyMediaGroup:
             message_effect_id (``int`` ``64-bit``, *optional*):
                 Unique identifier of the message effect to be added to the message; for private chats only.
 
+            covers (``str`` | ``BinaryIO`` | ``bool`` | List of ``str``, ``BinaryIO``, ``bool``, *optional*):
+                New covers for videos.
+                If a ``string``, ``BinaryIO`` or ``bool`` is passed, it becomes a cover only for the first media.
+                If a list is passed, each element corresponds to a media element.
+                Pass True to use the existing cover of the original message if available (default).
+                Pass False to skip attaching the original cover.
+                Pass a file_id, HTTP URL, or file path as string to upload a new photo cover.
+                Pass a binary file-like object with its attribute ".name" set for in-memory uploads.
+
         Returns:
             List of :obj:`~pyrogram.types.Message`: On success, a list of copied messages is returned.
 
@@ -149,6 +162,13 @@ class CopyMediaGroup:
         multi_media = []
 
         for i, message in enumerate(media_group):
+            cover = (
+                covers[i] if isinstance(covers, list) and i < len(covers) else
+                covers if (isinstance(covers, (str, bool)) or hasattr(covers, "read")) and i == 0 else
+                True
+            )
+            vidcover_file = None
+
             if message.photo:
                 file_id = message.photo.file_id
             elif message.audio:
@@ -157,8 +177,55 @@ class CopyMediaGroup:
                 file_id = message.document.file_id
             elif message.video:
                 file_id = message.video.file_id
+
+                if cover is False:
+                    cover = None
             else:
                 raise ValueError("Message with this type can't be copied.")
+
+            if message.video and cover not in (True, False, None):
+                if isinstance(cover, str):
+                    if os.path.isfile(cover):
+                        vidcover_media = await self.invoke(
+                            raw.functions.messages.UploadMedia(
+                                peer=await self.resolve_peer(chat_id),
+                                media=raw.types.InputMediaUploadedPhoto(
+                                    file=await self.save_file(cover)
+                                )
+                            )
+                        )
+                    elif re.match("^https?://", cover):
+                        vidcover_media = await self.invoke(
+                            raw.functions.messages.UploadMedia(
+                                peer=await self.resolve_peer(chat_id),
+                                media=raw.types.InputMediaPhotoExternal(
+                                    url=cover
+                                )
+                            )
+                        )
+                    else:
+                        vidcover_file = utils.get_input_media_from_file_id(cover, FileType.PHOTO).id
+                else:
+                    vidcover_media = await self.invoke(
+                        raw.functions.messages.UploadMedia(
+                            peer=await self.resolve_peer(chat_id),
+                            media=raw.types.InputMediaUploadedPhoto(
+                                file=await self.save_file(cover)
+                            )
+                        )
+                    )
+
+                if 'vidcover_media' in locals() and vidcover_media:
+                    vidcover_file = raw.types.InputPhoto(
+                        id=vidcover_media.photo.id,
+                        access_hash=vidcover_media.photo.access_hash,
+                        file_reference=vidcover_media.photo.file_reference
+                    )
+            elif message.video and cover is True and message.video.video_cover:
+                # Need to use get_input_media_from_file_id because we need the real access_hash and file_reference
+                decoded = utils.get_input_media_from_file_id(message.video.video_cover.file_id, FileType.PHOTO)
+                vidcover_file = decoded.id if hasattr(decoded, 'id') else decoded
+
 
             media = utils.get_input_media_from_file_id(
                 file_id=file_id,
@@ -173,6 +240,10 @@ class CopyMediaGroup:
                     )
                 ),
             )
+
+            if hasattr(media, "video_cover") and vidcover_file is not None:
+                media.video_cover = vidcover_file
+
             multi_media.append(
                 raw.types.InputSingleMedia(
                     media=media,

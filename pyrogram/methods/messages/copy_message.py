@@ -19,7 +19,7 @@
 
 import logging
 from datetime import datetime
-from typing import Union, List, Optional
+from typing import Union, List, Optional, BinaryIO
 
 import pyrogram
 from pyrogram import types, enums
@@ -45,6 +45,7 @@ class CopyMessage:
         protect_content: bool = None,
         allow_paid_broadcast: bool = None,
         invert_media: bool = False,
+        cover: Union[str, BinaryIO, bool] = True,
         reply_markup: Union[
             "types.InlineKeyboardMarkup",
             "types.ReplyKeyboardMarkup",
@@ -118,6 +119,13 @@ class CopyMessage:
             invert_media (``bool``, *optional*):
                 Inverts the position of the media and caption.
 
+            cover (``str`` | ``BinaryIO`` | ``bool``, *optional*):
+                Video cover.
+                Pass True to use the existing cover of the original message if available (default).
+                Pass False to skip attaching the original cover.
+                Pass a file_id, HTTP URL, or file path as string to upload a new photo cover.
+                Pass a binary file-like object with its attribute ".name" set for in-memory uploads.
+
             reply_markup (:obj:`~pyrogram.types.InlineKeyboardMarkup` | :obj:`~pyrogram.types.ReplyKeyboardMarkup` | :obj:`~pyrogram.types.ReplyKeyboardRemove` | :obj:`~pyrogram.types.ForceReply`, *optional*):
                 Additional interface options. An object for an inline keyboard, custom reply keyboard,
                 instructions to remove reply keyboard or to force a reply from the user.
@@ -148,5 +156,6 @@ class CopyMessage:
             protect_content=protect_content,
             allow_paid_broadcast=allow_paid_broadcast,
             invert_media=invert_media,
+            cover=cover,
             reply_markup=reply_markup
         )
