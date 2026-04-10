@@ -4926,7 +4926,7 @@ class Message(Object, Update):
             elif self.video:
                 file_id = self.video.file_id
                 if cover is True:
-                    cover = self.video.video_cover.file_id if self.video.video_cover else None
+                    cover = self.video.cover.file_id if self.video.cover else None
                 elif cover is False:
                     cover = None
             elif self.animation:

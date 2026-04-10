@@ -221,9 +221,9 @@ class CopyMediaGroup:
                         access_hash=vidcover_media.photo.access_hash,
                         file_reference=vidcover_media.photo.file_reference
                     )
-            elif message.video and cover is True and message.video.video_cover:
+            elif message.video and cover is True and message.video.cover:
                 # Need to use get_input_media_from_file_id because we need the real access_hash and file_reference
-                decoded = utils.get_input_media_from_file_id(message.video.video_cover.file_id, FileType.PHOTO)
+                decoded = utils.get_input_media_from_file_id(message.video.cover.file_id, FileType.PHOTO)
                 vidcover_file = decoded.id if hasattr(decoded, 'id') else decoded
 
 
