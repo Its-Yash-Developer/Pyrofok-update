@@ -348,6 +348,7 @@ class SendMediaGroup:
                                 file_reference=media.document.file_reference
                             ),
                             spoiler=i.has_spoiler,
+                            video_cover=vidcover_file,
                         )
                     elif re.match("^https?://", i.media):
                         media = await self.invoke(
@@ -368,6 +369,7 @@ class SendMediaGroup:
                                 file_reference=media.document.file_reference
                             ),
                             spoiler=i.has_spoiler,
+                            video_cover=vidcover_file,
                         )
                     else:
                         media = utils.get_input_media_from_file_id(i.media, FileType.VIDEO)
@@ -404,6 +406,7 @@ class SendMediaGroup:
                             file_reference=media.document.file_reference
                         ),
                         spoiler=i.has_spoiler,
+                        video_cover=vidcover_file,
                     )
             elif isinstance(i, types.InputMediaAudio):
                 if isinstance(i.media, str):
