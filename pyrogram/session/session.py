@@ -315,10 +315,13 @@ class Session:
                     error_code = -Int.read(BytesIO(packet))
 
                     if error_code == 404:
-                        raise Unauthorized(
-                            "Auth key not found in the system. You must delete your session file "
-                            "and log in again with your phone number or bot token."
-                        )
+                        if self.is_media:
+                            log.warning("Media session auth key not found. Disconnecting...")
+                        else:
+                            raise Unauthorized(
+                                "Auth key not found in the system. You must delete your session file "
+                                "and log in again with your phone number or bot token."
+                            )
 
                     log.warning(
                         "Server sent transport error: %s (%s)",
