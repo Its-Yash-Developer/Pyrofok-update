@@ -69,15 +69,19 @@ class GetChat:
             if isinstance(r, raw.types.ChatInvite):
                 return types.ChatPreview._parse(self, r)
 
-            await self.fetch_peers([r.chat])
+            if hasattr(r, "chat") and r.chat:
+                await self.fetch_peers([r.chat])
+                if isinstance(r.chat, raw.types.Chat):
+                    chat_id = -r.chat.id
+                elif isinstance(r.chat, raw.types.Channel):
+                    chat_id = utils.get_channel_id(r.chat.id)
 
-            if isinstance(r.chat, raw.types.Chat):
-                chat_id = -r.chat.id
-
-            if isinstance(r.chat, raw.types.Channel):
-                chat_id = utils.get_channel_id(r.chat.id)
-
-        peer = await self.resolve_peer(chat_id)
+        try:
+            peer = await self.resolve_peer(chat_id)
+        except Exception:
+            if match and hasattr(r, "chat") and r.chat:
+                return types.Chat._parse_chat(self, r.chat)
+            raise
 
         if isinstance(peer, raw.types.InputPeerChannel):
             r = await self.invoke(raw.functions.channels.GetFullChannel(channel=peer))
