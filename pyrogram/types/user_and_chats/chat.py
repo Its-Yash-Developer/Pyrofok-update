@@ -234,6 +234,7 @@ class Chat(Object):
         is_support: bool = None,
         is_participants_hidden: bool = None,
         is_join_request: bool = None,
+        request_needed: bool = None,
         is_join_to_send: bool = None,
         is_antispam: bool = None,
         is_paid_reactions_available: bool = None,
@@ -288,7 +289,8 @@ class Chat(Object):
         self.is_fake = is_fake
         self.is_support = is_support
         self.is_participants_hidden = is_participants_hidden
-        self.is_join_request = is_join_request
+        self.is_join_request = is_join_request if is_join_request is not None else request_needed
+        self.request_needed = self.is_join_request
         self.is_join_to_send = is_join_to_send
         self.is_antispam = is_antispam
         self.is_paid_reactions_available = is_paid_reactions_available

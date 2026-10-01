@@ -23,6 +23,7 @@ from .approve_chat_join_request import ApproveChatJoinRequest
 from .create_chat_invite_link import CreateChatInviteLink
 from .decline_all_chat_join_requests import DeclineAllChatJoinRequests
 from .decline_chat_join_request import DeclineChatJoinRequest
+from .check_chat_invite import CheckChatInvite
 from .delete_chat_admin_invite_links import DeleteChatAdminInviteLinks
 from .delete_chat_invite_link import DeleteChatInviteLink
 from .edit_chat_invite_link import EditChatInviteLink
@@ -54,6 +55,8 @@ class InviteLinks(
     DeclineChatJoinRequest,
     ApproveAllChatJoinRequests,
     DeclineAllChatJoinRequests,
-    GetChatJoinRequests
+    GetChatJoinRequests,
+    CheckChatInvite
 ):
     pass
+

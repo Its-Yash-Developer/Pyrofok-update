@@ -17,10 +17,10 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with Pyrofork.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import List
+from typing import List, Union
 
 import pyrogram
-from pyrogram import raw
+from pyrogram import raw, enums
 from pyrogram import types
 from ..object import Object
 
@@ -32,8 +32,8 @@ class ChatPreview(Object):
         title (``str``):
             Title of the chat.
 
-        type (``str``):
-            Type of chat, can be either, "group", "supergroup" or "channel".
+        type (:obj:`~pyrogram.enums.ChatType` | ``str``):
+            Type of chat, can be either GROUP, SUPERGROUP or CHANNEL.
 
         members_count (``int``):
             Chat members count.
@@ -43,6 +43,12 @@ class ChatPreview(Object):
 
         members (List of :obj:`~pyrogram.types.User`, *optional*):
             Preview of some of the chat members.
+
+        request_needed (``bool``, *optional*):
+            True, if admin approval is required to join this chat.
+
+        is_join_request (``bool``, *optional*):
+            Alias to request_needed. True, if admin approval is required to join this chat.
     """
 
     def __init__(
@@ -50,32 +56,44 @@ class ChatPreview(Object):
         *,
         client: "pyrogram.Client" = None,
         title: str,
-        type: str,
+        type: Union[str, "enums.ChatType"],
         members_count: int,
         photo: "types.Photo" = None,
         members: List["types.User"] = None,
-        request_needed: bool = False
+        request_needed: bool = False,
+        is_join_request: bool = False
     ):
         super().__init__(client)
+
+        if isinstance(type, str):
+            type_str = type.upper()
+            if hasattr(enums.ChatType, type_str):
+                type = getattr(enums.ChatType, type_str)
 
         self.title = title
         self.type = type
         self.members_count = members_count
         self.photo = photo
         self.members = members
-        self.request_needed = request_needed
+        self.request_needed = bool(request_needed or is_join_request)
+        self.is_join_request = self.request_needed
 
     @staticmethod
     def _parse(client, chat_invite: "raw.types.ChatInvite") -> "ChatPreview":
+        chat_type = (
+            enums.ChatType.GROUP if not chat_invite.channel else
+            enums.ChatType.CHANNEL if chat_invite.broadcast else
+            enums.ChatType.SUPERGROUP
+        )
+        req_needed = bool(getattr(chat_invite, "request_needed", False))
         return ChatPreview(
             title=chat_invite.title,
-            type=("group" if not chat_invite.channel else
-                  "channel" if chat_invite.broadcast else
-                  "supergroup"),
+            type=chat_type,
             members_count=chat_invite.participants_count,
             photo=types.Photo._parse(client, chat_invite.photo),
             members=[types.User._parse(client, user) for user in chat_invite.participants] or None,
-            request_needed=bool(getattr(chat_invite, "request_needed", False)),
+            request_needed=req_needed,
+            is_join_request=req_needed,
             client=client
         )
 
